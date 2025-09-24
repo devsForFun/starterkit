@@ -74,7 +74,7 @@ export async function login(formData: { email: string; password: string }) {
 }
 
 // Implementation for signup with rate limiting
-export async function signup(formData: { email: string; password: string }) {
+export async function signup(formData: { name?: string; email: string; password: string }) {
   // Use email as identifier for rate limiting (simple approach)
   const identifier = formData.email.toLowerCase();
 
@@ -88,6 +88,12 @@ export async function signup(formData: { email: string; password: string }) {
   const data = {
     email: formData.email,
     password: formData.password,
+    options: {
+      data: {
+        full_name: formData.name || '',
+        name: formData.name || '',
+      },
+    },
   };
 
   const { error } = await supabase.auth.signUp(data);
@@ -105,8 +111,8 @@ export async function signup(formData: { email: string; password: string }) {
 
 export async function signInWithGoogle() {
   const supabase = await createClient();
-  // Default redirect to learn page if no specific origin is stored
-  const origin = '/learn';
+  // Default redirect to dashboard page after successful authentication
+  const origin = '/dashboard';
 
   // Get the site URL from environment
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
