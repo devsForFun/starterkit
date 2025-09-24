@@ -42,9 +42,19 @@ export default function LoginPreview() {
   // Auto redirect if already logged in; also used to show a loading animation while verifying
   useEffect(() => {
     const supabase = createClient();
+
+    // Check for authentication errors in URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    if (error) {
+      toast.error('Authentication failed. Please try again.');
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        router.push('/learn');
+        // Get redirect URL from query params or default to dashboard
+        const redirectTo = urlParams.get('redirectTo') || '/dashboard';
+        router.push(redirectTo);
       } else {
         setLoading(false);
       }
@@ -62,7 +72,11 @@ export default function LoginPreview() {
       }
       toast('Login successful. You will be redirected to the app shortly.');
       setLoggedIn(true);
-      router.push('/learn');
+
+      // Get redirect URL from query params or default to dashboard
+      const urlParams = new URLSearchParams(window.location.search);
+      const redirectTo = urlParams.get('redirectTo') || '/dashboard';
+      router.push(redirectTo);
     } finally {
       // Clear sensitive data from memory
       form.reset();
