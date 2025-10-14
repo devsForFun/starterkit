@@ -1,15 +1,23 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
+/**
+ * Creates a Supabase server client for use in Server Components, Server Actions, and Route Handlers
+ * Uses Supabase's new asymmetric JWT signing keys system for secure authentication
+ *
+ * @returns {Promise<SupabaseClient>} A configured Supabase client instance
+ * @throws {Error} If required environment variables are missing
+ */
 export async function createClient() {
   const cookieStore = await cookies();
 
-  // Use environment variables without non-null assertions
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Missing Supabase environment variables');
+    throw new Error(
+      'Missing Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are required',
+    );
   }
 
   return createServerClient(supabaseUrl, supabaseKey, {
@@ -20,26 +28,25 @@ export async function createClient() {
       setAll(cookiesToSet) {
         try {
           cookiesToSet.forEach(({ name, value, options }) => {
-            // Add secure cookie options
-            const secureOptions = {
+            cookieStore.set(name, value, {
               ...options,
+              // Secure cookie options for production
               secure: process.env.NODE_ENV === 'production',
-              httpOnly: true,
-              sameSite: 'lax' as const,
-            };
-            cookieStore.set(name, value, secureOptions);
+              sameSite: 'lax',
+            });
           });
         } catch {
           // The `setAll` method was called from a Server Component.
-          // This can be ignored if you have middleware refreshing
-          // user sessions.
+          // This can be safely ignored if middleware is handling session refresh.
         }
       },
     },
     auth: {
-      // Add autoRefreshToken to automatically refresh authentication tokens
+      // Automatically refresh authentication tokens before they expire
       autoRefreshToken: true,
+      // Persist the session to cookies
       persistSession: true,
+      // Detect session from URL (for OAuth callbacks)
       detectSessionInUrl: true,
     },
   });
