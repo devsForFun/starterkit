@@ -59,7 +59,7 @@ export default function RegisterPreview() {
       }
       toast('Successfully registered! Check your email for a confirmation link.');
       setRegistered(true);
-      router.push('/check-email');
+      router.push('/dashboard');
     } finally {
       // Clear sensitive data from memory
       form.reset();
