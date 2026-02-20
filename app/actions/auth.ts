@@ -166,7 +166,6 @@ export async function signup(formData: { name?: string; email: string; password:
 export async function signInWithGoogle() {
   try {
     const supabase = await createClient();
-    const origin = '/dashboard';
 
     // Get the site URL from environment
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
@@ -174,9 +173,10 @@ export async function signInWithGoogle() {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${siteUrl}/auth/callback?next=${origin}`,
+        redirectTo: `${siteUrl}/api/callback?next=/dashboard`,
         queryParams: {
-          prompt: 'select_account',
+          access_type: 'offline',
+          prompt: 'consent',
         },
       },
     });

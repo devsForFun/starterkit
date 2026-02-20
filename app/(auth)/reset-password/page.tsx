@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { resetPassword } from '@/app/actions/auth';
+import { isAuthEnabled, isResetPasswordEnabled } from '@/lib/feature-flags';
 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
@@ -34,6 +36,8 @@ export default function ResetPasswordPage() {
   const router = useRouter();
   const [isValidToken, setIsValidToken] = useState(true);
   const [passwordReset, setPasswordReset] = useState(false);
+  const authEnabled = isAuthEnabled();
+  const resetPasswordEnabled = isResetPasswordEnabled();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -79,6 +83,29 @@ export default function ResetPasswordPage() {
       console.error('Error resetting password:', error);
       toast.error('An unexpected error occurred. Please try again.');
     }
+  }
+
+  // Auth disabled or reset password disabled
+  if (!authEnabled || !resetPasswordEnabled) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center px-4">
+        <Card className="mx-auto w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-2xl">Access Restricted</CardTitle>
+            <CardDescription>
+              {!authEnabled
+                ? 'Registrations are currently closed. This application is in private beta.'
+                : 'Password reset is not available.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/">
+              <Button className="w-full">Go back to home</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   if (!isValidToken) {
