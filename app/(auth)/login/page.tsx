@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { createClient } from '@/utils/supabase/client';
 import { login, signInWithGoogle } from '@/app/actions/auth';
+import { isAuthEnabled, isLoginEmailAuthEnabled } from '@/lib/feature-flags';
 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,9 @@ export default function LoginPreview() {
   const router = useRouter();
   const [loggedIn, setLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
+  const authEnabled = isAuthEnabled();
+  const emailAuthEnabled = isLoginEmailAuthEnabled();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -47,7 +51,7 @@ export default function LoginPreview() {
     const urlParams = new URLSearchParams(window.location.search);
     const error = urlParams.get('error');
     if (error) {
-      toast.error('Authentication failed. Please try again.');
+      toast.error(decodeURIComponent(error));
     }
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -94,75 +98,104 @@ export default function LoginPreview() {
     );
   }
 
+  // Auth disabled - show access denied
+  if (!authEnabled) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center px-4">
+        <Card className="mx-auto w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-2xl">Access Restricted</CardTitle>
+            <CardDescription>
+              Registrations are currently closed. This application is in private beta.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/">
+              <Button className="w-full">Go back to home</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen w-full items-center justify-center px-4">
       <Card className="mx-auto w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>Enter your email and password to login to your account.</CardDescription>
+          <CardDescription>
+            {emailAuthEnabled
+              ? 'Enter your email and password to login to your account.'
+              : 'Sign in with Google to access your account.'}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              <div className="grid gap-4">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem className="grid gap-2">
-                      <FormLabel htmlFor="email">Email</FormLabel>
-                      <FormControl>
-                        <Input id="email" placeholder="johndoe@mail.com" type="email" autoComplete="email" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem className="grid gap-2">
-                      <div className="flex justify-between items-center">
-                        <FormLabel htmlFor="password">Password</FormLabel>
-                        {/* <Link
-                          href="#"
-                          className="ml-auto inline-block text-sm underline"
-                        >
-                          Forgot your password?
-                        </Link> */}
-                      </div>
-                      <FormControl>
-                        <PasswordInput id="password" placeholder="******" autoComplete="current-password" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button
-                  type="submit"
-                  className={`w-full ${loggedIn ? 'bg-green-500 hover:bg-green-600' : ''}`}
-                  disabled={form.formState.isSubmitting || loggedIn}
-                >
-                  {loggedIn ? 'Logged In' : form.formState.isSubmitting ? 'Logging in...' : 'Login'}
-                </Button>
-              </div>
-            </form>
-          </Form>
+          {emailAuthEnabled && (
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <div className="grid gap-4">
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem className="grid gap-2">
+                        <FormLabel htmlFor="email">Email</FormLabel>
+                        <FormControl>
+                          <Input id="email" placeholder="johndoe@mail.com" type="email" autoComplete="email" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem className="grid gap-2">
+                        <div className="flex justify-between items-center">
+                          <FormLabel htmlFor="password">Password</FormLabel>
+                          {/* <Link
+                            href="#"
+                            className="ml-auto inline-block text-sm underline"
+                          >
+                            Forgot your password?
+                          </Link> */}
+                        </div>
+                        <FormControl>
+                          <PasswordInput id="password" placeholder="******" autoComplete="current-password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button
+                    type="submit"
+                    className={`w-full ${loggedIn ? 'bg-green-500 hover:bg-green-600' : ''}`}
+                    disabled={form.formState.isSubmitting || loggedIn}
+                  >
+                    {loggedIn ? 'Logged In' : form.formState.isSubmitting ? 'Logging in...' : 'Login'}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          )}
 
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
+          <div className={emailAuthEnabled ? 'mt-6' : ''}>
+            {emailAuthEnabled && (
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                </div>
               </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-              </div>
-            </div>
+            )}
 
             <Button
               variant="outline"
-              className="mt-4 w-full flex items-center justify-center gap-2"
+              className={`${emailAuthEnabled ? 'mt-4' : ''} w-full flex items-center justify-center gap-2`}
               onClick={async () => {
                 const { url, error } = await signInWithGoogle();
                 if (error) {
@@ -195,12 +228,14 @@ export default function LoginPreview() {
             </Button>
           </div>
 
-          <div className="mt-4 text-center text-sm">
-            Don&apos;t have an account?{' '}
-            <Link href="/register" className="underline">
-              Sign up
-            </Link>
-          </div>
+          {emailAuthEnabled && (
+            <div className="mt-4 text-center text-sm">
+              Don&apos;t have an account?{' '}
+              <Link href="/register" className="underline">
+                Sign up
+              </Link>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { requestPasswordReset } from '@/app/actions/auth';
+import { isAuthEnabled, isForgotPasswordEnabled } from '@/lib/feature-flags';
 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,9 @@ const formSchema = z.object({
 
 export default function ForgotPasswordPage() {
   const [emailSent, setEmailSent] = useState(false);
+  const authEnabled = isAuthEnabled();
+  const forgotPasswordEnabled = isForgotPasswordEnabled();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -42,6 +46,29 @@ export default function ForgotPasswordPage() {
       console.error('Error sending password reset email:', error);
       toast.error('An unexpected error occurred. Please try again.');
     }
+  }
+
+  // Auth disabled or forgot password disabled
+  if (!authEnabled || !forgotPasswordEnabled) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center px-4">
+        <Card className="mx-auto w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-2xl">Access Restricted</CardTitle>
+            <CardDescription>
+              {!authEnabled
+                ? 'Registrations are currently closed. This application is in private beta.'
+                : 'Password reset is not available.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/">
+              <Button className="w-full">Go back to home</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   if (emailSent) {
