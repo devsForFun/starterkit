@@ -1,4 +1,4 @@
-# Frontend Template — Next.js 15 + Tailwind CSS v4 + Supabase
+# Frontend Template — Next.js 16 + Tailwind CSS v4 + Supabase
 
 A modern, opinionated SaaS starter kit built with Next.js 15, Tailwind CSS v4, Shadcn UI, Supabase, and Upstash Redis.
 
