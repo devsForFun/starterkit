@@ -7,9 +7,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "next dev --turbopack",
+    "build": "next build --turbopack",
+    "start": "next start --turbopack",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{js,ts,tsx,json,md}\"",
     "clean:dotfiles": "find . -type f -name '._*' -exec rm -f {} +",
